@@ -3,7 +3,7 @@ export const config = {
   patterns: [
       {
           pattern: "/blog/[^/]+",
-          metaDataEndpoint: "https://xqwg-7kxp-yoks.n7.xano.io/%7Bid%7D/metadata?blog_id={id}"
+          metaDataEndpoint: "https://xqwg-7kxp-yoks.n7.xano.io/{blog_id}/metadata"
       }
       // Add more patterns and their metadata endpoints as needed
   ]
