@@ -31,50 +31,51 @@ export default {
     }
 
     // Function to request metadata
-    async function requestMetadata(url, metaDataEndpoint) {
-      try {
-        // Remove any trailing slash from the URL
-        const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+		async function requestMetadata(url, metaDataEndpoint) {
+  try {
+    // Remove any trailing slash from the URL
+    const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
 
-        // Split the trimmed URL by '/' and get the last part: The id
-        const parts = trimmedUrl.split('/');
-        const id = parts[parts.length - 1];
+    // Split the trimmed URL by '/' and get the last part: The ID
+    const parts = trimmedUrl.split('/');
+    const id = parts[parts.length - 1];
 
-        // Ensure the id is valid
-        if (!id) {
-          throw new Error(`Invalid ID extracted from URL: ${url}`);
-        }
-
-        // Replace the placeholder in metaDataEndpoint with the actual id
-        const metaDataEndpointWithId = metaDataEndpoint.replace(/{([^}]+)}/, id);
-        console.log("Constructed URL:", metaDataEndpointWithId);
-
-        // Fetch metadata from the API endpoint with manual redirect handling
-        const metaDataResponse = await fetch(metaDataEndpointWithId, {
-          redirect: 'manual' // Prevents automatic redirects
-        });
-
-        // Check if the response is a redirect
-        if (metaDataResponse.status >= 300 && metaDataResponse.status < 400) {
-          const redirectLocation = metaDataResponse.headers.get('Location');
-          console.error("Redirection detected to:", redirectLocation);
-          throw new Error(`Too many redirects: ${metaDataEndpointWithId}`);
-        }
-
-        // Check for a successful response
-        if (metaDataResponse.ok) {
-          const metadata = await metaDataResponse.json();
-          return metadata;
-        } else {
-          const errorText = await metaDataResponse.text();
-          console.error("Failed to fetch metadata. Response:", errorText);
-          throw new Error(`Failed to fetch metadata from ${metaDataEndpointWithId}`);
-        }
-      } catch (error) {
-        console.error("Error in requestMetadata:", error.message);
-        throw error;
-      }
+    // Ensure the ID is valid
+    if (!id || id.includes('{') || id.includes('}')) {
+      throw new Error(`Invalid ID extracted from URL: ${url}`);
     }
+
+    // Replace the placeholder in metaDataEndpoint with the actual ID
+    const metaDataEndpointWithId = metaDataEndpoint.replace(/{[^}]+}/, encodeURIComponent(id));
+    console.log("Constructed URL:", metaDataEndpointWithId);
+
+    // Fetch metadata from the API endpoint with manual redirect handling
+    const metaDataResponse = await fetch(metaDataEndpointWithId, {
+      redirect: 'manual' // Prevents automatic redirects
+    });
+
+    // Check if the response is a redirect
+    if (metaDataResponse.status >= 300 && metaDataResponse.status < 400) {
+      const redirectLocation = metaDataResponse.headers.get('Location');
+      console.error("Redirection detected to:", redirectLocation);
+      throw new Error(`Too many redirects: ${metaDataEndpointWithId}`);
+    }
+
+    // Check for a successful response
+    if (metaDataResponse.ok) {
+      const metadata = await metaDataResponse.json();
+      return metadata;
+    } else {
+      const errorText = await metaDataResponse.text();
+      console.error("Failed to fetch metadata. Response:", errorText);
+      throw new Error(`Failed to fetch metadata from ${metaDataEndpointWithId}`);
+    }
+  } catch (error) {
+    console.error("Error in requestMetadata:", error.message);
+    throw error;
+  }
+}
+
 
     // Handle dynamic page requests
     const patternConfig = getPatternConfig(url.pathname);
