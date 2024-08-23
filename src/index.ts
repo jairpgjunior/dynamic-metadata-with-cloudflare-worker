@@ -58,6 +58,8 @@ export default {
 
       const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
       console.log("Metadata fetched:", metadata);
+      console.log("url requested:", metaDataEndpointWithId);
+	    
 
       // Create a custom header handler with the fetched metadata
       const customHeaderHandler = new CustomHeaderHandler(metadata);
