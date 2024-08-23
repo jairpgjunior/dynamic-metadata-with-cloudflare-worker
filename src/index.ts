@@ -10,7 +10,7 @@ export default {
 
     // Parse the request URL
     const url = new URL(request.url);
-    const referer = request.headers.get('Referer');
+    const referer = request.headers.get('Referer')
 
     // Function to get the pattern configuration that matches the URL
     function getPatternConfig(url) {
@@ -33,30 +33,21 @@ export default {
     async function requestMetadata(url, metaDataEndpoint) {
       // Remove any trailing slash from the URL
       const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-
+    
       // Split the trimmed URL by '/' and get the last part: The id
       const parts = trimmedUrl.split('/');
       const id = parts[parts.length - 1];
-
+    
       // Replace the placeholder in metaDataEndpoint with the actual id
       const placeholderPattern = /{([^}]+)}/;
       const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
       console.log("url requested:", metaDataEndpointWithId);
-
+    
       // Fetch metadata from the API endpoint
       const metaDataResponse = await fetch(metaDataEndpointWithId);
-      console.log("url response status:", metaDataResponse.status);
-
-      // Check if the response is successful and JSON
-      if (metaDataResponse.ok && metaDataResponse.headers.get('Content-Type')?.includes('application/json')) {
-        const metadata = await metaDataResponse.json();
-        return metadata;
-      } else {
-        // Handle cases where the response is not JSON (e.g., HTML error page)
-        const errorText = await metaDataResponse.text();  // Read the response as text
-        console.error("Failed to fetch metadata. Non-JSON response:", errorText);
-        return null;
-      }
+      console.log("url response:", metaDataResponse);
+      const metadata = await metaDataResponse.json();
+      return metadata;
     }
 
     // Handle dynamic page requests
@@ -69,6 +60,8 @@ export default {
 
       const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
       console.log("Metadata fetched:", metadata);
+   
+	    
 
       // Create a custom header handler with the fetched metadata
       const customHeaderHandler = new CustomHeaderHandler(metadata);
@@ -80,8 +73,8 @@ export default {
 
     // Handle page data requests for the WeWeb app
     } else if (isPageData(url.pathname)) {
-      console.log("Page data detected:", url.pathname);
-      console.log("Referer:", referer);
+      	console.log("Page data detected:", url.pathname);
+	console.log("Referer:", referer);
 
       // Fetch the source data content
       const sourceResponse = await fetch(`${domainSource}${url.pathname}`);
@@ -105,22 +98,22 @@ export default {
           sourceData.page.socialDesc = sourceData.page.socialDesc || {};
 
           // Update source data with the fetched metadata
-          if (metadata?.title) {
+          if (metadata.title) {
             sourceData.page.title.en = metadata.title;
             sourceData.page.socialTitle.en = metadata.title;
           }
-          if (metadata?.description) {
+          if (metadata.description) {
             sourceData.page.meta.desc.en = metadata.description;
             sourceData.page.socialDesc.en = metadata.description;
           }
-          if (metadata?.image) {
+          if (metadata.image) {
             sourceData.page.metaImage = metadata.image;
           }
-          if (metadata?.keywords) {
+          if (metadata.keywords) {
             sourceData.page.meta.keywords.en = metadata.keywords;
           }
 
-          console.log("returning file: ", JSON.stringify(sourceData));
+	  console.log("returning file: ", JSON.stringify(sourceData));
           // Return the modified JSON object
           return new Response(JSON.stringify(sourceData), {
             headers: { 'Content-Type': 'application/json' }
@@ -147,12 +140,12 @@ class CustomHeaderHandler {
 
   element(element) {
     // Replace the <title> tag content
-    if (element.tagName === "title") {
+    if (element.tagName == "title") {
       console.log('Replacing title tag content');
       element.setInnerContent(this.metadata.title);
     }
     // Replace meta tags content
-    if (element.tagName === "meta") {
+    if (element.tagName == "meta") {
       const name = element.getAttribute("name");
       switch (name) {
         case "title":
