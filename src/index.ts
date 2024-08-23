@@ -41,9 +41,11 @@ export default {
       // Replace the placeholder in metaDataEndpoint with the actual id
       const placeholderPattern = /{([^}]+)}/;
       const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
+      console.log("url requested:", metaDataEndpointWithId);
     
       // Fetch metadata from the API endpoint
       const metaDataResponse = await fetch(metaDataEndpointWithId);
+      console.log("url response:", metaDataResponse);
       const metadata = await metaDataResponse.json();
       return metadata;
     }
@@ -58,7 +60,7 @@ export default {
 
       const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
       console.log("Metadata fetched:", metadata);
-      console.log("url requested:", metaDataEndpointWithId);
+   
 	    
 
       // Create a custom header handler with the fetched metadata
