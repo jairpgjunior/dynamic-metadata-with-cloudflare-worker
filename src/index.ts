@@ -10,7 +10,7 @@ export default {
 
     // Parse the request URL
     const url = new URL(request.url);
-    const referer = request.headers.get('Referer');
+    const referer = request.headers.get('Referer')
 
     // Function to get the pattern configuration that matches the URL
     function getPatternConfig(url) {
@@ -30,52 +30,25 @@ export default {
       return pattern.test(url);
     }
 
-    // Function to request metadata
-		async function requestMetadata(url, metaDataEndpoint) {
-  try {
-    // Remove any trailing slash from the URL
-    const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-
-    // Split the trimmed URL by '/' and get the last part: The ID
-    const parts = trimmedUrl.split('/');
-    const id = parts[parts.length - 1];
-
-    // Ensure the ID is valid
-    if (!id || id.includes('{') || id.includes('}')) {
-      throw new Error(`Invalid ID extracted from URL: ${url}`);
-    }
-
-    // Replace the placeholder in metaDataEndpoint with the actual ID
-    const metaDataEndpointWithId = metaDataEndpoint.replace(/{[^}]+}/, encodeURIComponent(id));
-    console.log("Constructed URL:", metaDataEndpointWithId);
-
-    // Fetch metadata from the API endpoint with manual redirect handling
-    const metaDataResponse = await fetch(metaDataEndpointWithId, {
-      redirect: 'manual' // Prevents automatic redirects
-    });
-
-    // Check if the response is a redirect
-    if (metaDataResponse.status >= 300 && metaDataResponse.status < 400) {
-      const redirectLocation = metaDataResponse.headers.get('Location');
-      console.error("Redirection detected to:", redirectLocation);
-      throw new Error(`Too many redirects: ${metaDataEndpointWithId}`);
-    }
-
-    // Check for a successful response
-    if (metaDataResponse.ok) {
+    async function requestMetadata(url, metaDataEndpoint) {
+      // Remove any trailing slash from the URL
+      const trimmedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    
+      // Split the trimmed URL by '/' and get the last part: The id
+      const parts = trimmedUrl.split('/');
+      const id = parts[parts.length - 1];
+    
+      // Replace the placeholder in metaDataEndpoint with the actual id
+      const placeholderPattern = /{([^}]+)}/;
+      const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
+      console.log("url requested:", metaDataEndpointWithId);
+    
+      // Fetch metadata from the API endpoint
+      const metaDataResponse = await fetch(metaDataEndpointWithId);
+      console.log("url response:", metaDataResponse);
       const metadata = await metaDataResponse.json();
       return metadata;
-    } else {
-      const errorText = await metaDataResponse.text();
-      console.error("Failed to fetch metadata. Response:", errorText);
-      throw new Error(`Failed to fetch metadata from ${metaDataEndpointWithId}`);
     }
-  } catch (error) {
-    console.error("Error in requestMetadata:", error.message);
-    throw error;
-  }
-}
-
 
     // Handle dynamic page requests
     const patternConfig = getPatternConfig(url.pathname);
@@ -83,18 +56,12 @@ export default {
       console.log("Dynamic page detected:", url.pathname);
 
       // Fetch the source page content
-      const source = await fetch(`${domainSource}${url.pathname}`);
-
-      // Remove "X-Robots-Tag" from the headers
-      const sourceHeaders = new Headers(source.headers);
-      sourceHeaders.delete('X-Robots-Tag');
-      source = new Response(source.body, {
-        status: source.status,
-        headers: sourceHeaders
-      });
+      let source = await fetch(`${domainSource}${url.pathname}`);
 
       const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
       console.log("Metadata fetched:", metadata);
+   
+	    
 
       // Create a custom header handler with the fetched metadata
       const customHeaderHandler = new CustomHeaderHandler(metadata);
@@ -106,8 +73,8 @@ export default {
 
     // Handle page data requests for the WeWeb app
     } else if (isPageData(url.pathname)) {
-      console.log("Page data detected:", url.pathname);
-      console.log("Referer:", referer);
+      	console.log("Page data detected:", url.pathname);
+	console.log("Referer:", referer);
 
       // Fetch the source data content
       const sourceResponse = await fetch(`${domainSource}${url.pathname}`);
@@ -146,7 +113,7 @@ export default {
             sourceData.page.meta.keywords.en = metadata.keywords;
           }
 
-          console.log("Returning file:", JSON.stringify(sourceData));
+	  console.log("returning file: ", JSON.stringify(sourceData));
           // Return the modified JSON object
           return new Response(JSON.stringify(sourceData), {
             headers: { 'Content-Type': 'application/json' }
@@ -161,14 +128,7 @@ export default {
     const sourceRequest = new Request(sourceUrl, request);
     const sourceResponse = await fetch(sourceRequest);
 
-    // Create a new response without the "X-Robots-Tag" header
-    const modifiedHeaders = new Headers(sourceResponse.headers);
-    modifiedHeaders.delete('X-Robots-Tag');
-
-    return new Response(sourceResponse.body, {
-      status: sourceResponse.status,
-      headers: modifiedHeaders,
-    });
+    return sourceResponse;
   }
 };
 
@@ -180,12 +140,12 @@ class CustomHeaderHandler {
 
   element(element) {
     // Replace the <title> tag content
-    if (element.tagName === "title") {
+    if (element.tagName == "title") {
       console.log('Replacing title tag content');
       element.setInnerContent(this.metadata.title);
     }
     // Replace meta tags content
-    if (element.tagName === "meta") {
+    if (element.tagName == "meta") {
       const name = element.getAttribute("name");
       switch (name) {
         case "title":
@@ -236,14 +196,6 @@ class CustomHeaderHandler {
           element.setAttribute("content", this.metadata.image);
           break;
       }
-
-      // Remove the noindex meta tag
-      const robots = element.getAttribute("name");
-      if (robots === "robots" && element.getAttribute("content") === "noindex") {
-        console.log('Removing noindex tag');
-        element.remove();
-      }
-	    
     }
   }
 }
