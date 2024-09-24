@@ -41,11 +41,9 @@ export default {
       // Replace the placeholder in metaDataEndpoint with the actual id
       const placeholderPattern = /{([^}]+)}/;
       const metaDataEndpointWithId = metaDataEndpoint.replace(placeholderPattern, id);
-      console.log("url requested:", metaDataEndpointWithId);
     
       // Fetch metadata from the API endpoint
       const metaDataResponse = await fetch(metaDataEndpointWithId);
-      console.log("url response:", metaDataResponse);
       const metadata = await metaDataResponse.json();
       return metadata;
     }
@@ -58,10 +56,16 @@ export default {
       // Fetch the source page content
       let source = await fetch(`${domainSource}${url.pathname}`);
 
+      // Remove "X-Robots-Tag" from the headers
+      const sourceHeaders = new Headers(source.headers);
+      sourceHeaders.delete('X-Robots-Tag');
+      source = new Response(source.body, {
+        status: source.status,
+        headers: sourceHeaders
+      });
+
       const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
       console.log("Metadata fetched:", metadata);
-   
-	    
 
       // Create a custom header handler with the fetched metadata
       const customHeaderHandler = new CustomHeaderHandler(metadata);
@@ -128,7 +132,14 @@ export default {
     const sourceRequest = new Request(sourceUrl, request);
     const sourceResponse = await fetch(sourceRequest);
 
-    return sourceResponse;
+    // Create a new response without the "X-Robots-Tag" header
+    const modifiedHeaders = new Headers(sourceResponse.headers);
+    modifiedHeaders.delete('X-Robots-Tag');
+
+    return new Response(sourceResponse.body, {
+      status: sourceResponse.status,
+      headers: modifiedHeaders,
+    });
   }
 };
 
@@ -196,6 +207,14 @@ class CustomHeaderHandler {
           element.setAttribute("content", this.metadata.image);
           break;
       }
+
+      // Remove the noindex meta tag
+      const robots = element.getAttribute("name");
+      if (robots === "robots" && element.getAttribute("content") === "noindex") {
+        console.log('Removing noindex tag');
+        element.remove();
+      }
+	    
     }
   }
 }
